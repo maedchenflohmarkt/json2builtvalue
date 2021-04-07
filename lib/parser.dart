@@ -12,36 +12,28 @@ class Parser {
 
   String parse(String jsonString, String topLevelName) {
     var decode = json.decode(jsonString);
+    return _recurseParsing(topLevelName, decode);
+  }
 
+  String _recurseParsing(className, decode) {
     List<Tuple2<String, List<Subtype>>> allClasses = [];
+    String result = "";
 
-    //check if list or map
-    if (decode is List) {}
+    List<Subtype> fieldsTypes = _getTypedClassFields(decode);
+    allClasses.add(new Tuple2(className, fieldsTypes));
 
-    List<Subtype> topLevel = _getTypedClassFields(decode);
-    allClasses.add(new Tuple2(topLevelName, topLevel));
-
-    topLevel.forEach((Subtype s) {
+    fieldsTypes.forEach((Subtype s) {
       if ((s.type == JsonType.LIST && s.listType == JsonType.MAP) ||
           s.type == JsonType.MAP) {
-        var getTypedClassFields = _getTypedClassFields(s.value);
-        allClasses.add(new Tuple2(s.name, getTypedClassFields));
+        result += _recurseParsing(s.name, s.value);
       }
     });
 
-//    print('all: $allClasses');
-
-    String output = _generateStringClass(topLevel, topLevelName);
-
-//    allClasses.forEach((Tuple2<String, List<Subtype>> tuple){
-//      _generateStringClass(tuple.item2, tuple.item1 + 'Dto');
-//    });
-
-    String reduce = allClasses
+    result += allClasses
         .map((tuple) => _generateStringClass(tuple.item2, tuple.item1))
         .reduce((s1, s2) => s1 + s2);
 
-    return reduce;
+    return result;
   }
 
   String _generateStringClass(List<Subtype> topLevel, String name) {
@@ -49,16 +41,14 @@ class Parser {
       ..abstract = true
       ..constructors.add(new Constructor((b) => b..name = '_'))
       ..implements.add(new Reference(
-          'Built<${_getPascalCaseClassName(name)}, ${_getPascalCaseClassName(
-              name)}Builder>'))
+          'Built<${_getPascalCaseClassName(name)}, ${_getPascalCaseClassName(name)}Builder>'))
       ..name = _getPascalCaseClassName(name)
       ..methods = _buildMethods(topLevel)
       ..methods.add(new Method((b) => b
         ..name = 'toJson'
         ..returns = new Reference('String')
         ..body = new Code(
-            'return json.encode(serializers.serializeWith(${_getPascalCaseClassName(
-                name)}.serializer, this));')))
+            'return json.encode(serializers.serializeWith(${_getPascalCaseClassName(name)}.serializer, this));')))
       ..methods.add(new Method((b) => b
         ..name = 'fromJson'
         ..static = true
@@ -67,8 +57,7 @@ class Parser {
           ..type = new Reference('String')))
         ..returns = new Reference(_getPascalCaseClassName(name))
         ..body = new Code(
-            'return serializers.deserializeWith(${_getPascalCaseClassName(
-                name)}.serializer, json.decode(jsonString));')))
+            'return serializers.deserializeWith(${_getPascalCaseClassName(name)}.serializer, json.decode(jsonString));')))
       ..methods.add(new Method((b) => b
         ..type = MethodType.getter
         ..name = 'serializer'
@@ -77,13 +66,14 @@ class Parser {
         ..returns =
             new Reference('Serializer<${_getPascalCaseClassName(name)}>')
         ..body = new Code('_\$${ReCase(name).camelCase}Serializer')))
-      ..constructors.add(new Constructor((b) => b
-        ..factory = true
-        ..redirect = refer(' _\$${_getPascalCaseClassName(name)}')
-        ..requiredParameters.add(new Parameter((b) => b
-        ..defaultTo = Code('= _\$${_getPascalCaseClassName(name)}')
-          ..name = '[updates(${_getPascalCaseClassName(name)}Builder b)]'))),)
-          );
+      ..constructors.add(
+        new Constructor((b) => b
+          ..factory = true
+          ..redirect = refer(' _\$${_getPascalCaseClassName(name)}')
+          ..requiredParameters.add(new Parameter((b) => b
+            ..defaultTo = Code('= _\$${_getPascalCaseClassName(name)}')
+            ..name = '[updates(${_getPascalCaseClassName(name)}Builder b)]'))),
+      ));
 
     String classString = topLevelClass.accept(new DartEmitter()).toString();
 
@@ -162,11 +152,10 @@ class Parser {
       toDecode = decode;
     }
 
-//  if (toDecode is Map) {
     toDecode.forEach((key, val) {
       topLevelClass.add(_returnType(key, val));
     });
-//  }
+
     return topLevelClass;
   }
 
