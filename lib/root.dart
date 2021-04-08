@@ -1,27 +1,43 @@
-class Root {
-  final String title;
-
-  final Map<String, Subtype> jsonTree;
-
-  Root(this.title, this.jsonTree);
-
-  @override
-  String toString() {
-    return 'Root{title: $title, jsonTree: $jsonTree}';
-  }
-}
-
-class Subtype {
+class GenType {
   final String name;
   final JsonType type;
   final JsonType listType;
   final dynamic value;
 
-  Subtype(this.name, this.type, this.value, {this.listType});
+  GenType(this.name, this.type, this.value, {this.listType});
+
+  GenType copyWith({String name, JsonType type, value, JsonType listType}) {
+    return GenType(name ?? this.name, type ?? this.type, value ?? this.value,
+        listType: listType ?? this.listType);
+  }
 
   @override
   String toString() {
     return 'Subtype{name: $name, type: $type, listType: $listType, value: $value}';
+  }
+}
+
+class GenField {
+  final GenType type;
+  final String fieldName;
+
+  GenField(this.type, this.fieldName);
+
+  @override
+  String toString() {
+    return 'Field{fieldName: $fieldName, type: $type}';
+  }
+}
+
+class GenClass {
+  final String name;
+  final List<GenField> fields;
+
+  GenClass(this.name, this.fields);
+
+  @override
+  String toString() {
+    return 'Field{fieldName: $name, type: $fields}';
   }
 }
 

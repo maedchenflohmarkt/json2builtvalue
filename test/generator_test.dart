@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:built_collection/src/list.dart';
+import 'dart:io';
 import 'package:json2builtvalue/parser.dart';
 import 'package:test/test.dart';
 import 'package:code_builder/code_builder.dart';
@@ -40,11 +41,22 @@ main() {
 //  """;
 
   test('should parse json', () {
+  test('should parse json', () async {
     final parser = new Parser();
 
-    var parse = parser.parse(jsonString, 'TopLevel');
+    Map<String, String> classFiles = parser.parseToMap(jsonString, 'RootModel');
 
-    print(parse);
+    Stream files = Stream.fromIterable(classFiles.entries).asyncMap((entry) {
+      String filename = 'gen/${entry.key}.dart';
+      print("Preparing file: $filename");
+      return File(filename).writeAsString(entry.value);
+    });
+
+    await for (var file in files) {
+      print("File is done: ${file.path}");
+    }
+
+    print("Done!");
 
     expect(true, true);
   });
