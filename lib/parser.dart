@@ -92,12 +92,13 @@ class Parser {
     String classString = topLevelClass.accept(new DartEmitter()).toString();
 
     String header = """
-      library ${new ReCase(genClass.name).snakeCase};
       import 'dart:convert';
       
       import 'package:built_collection/built_collection.dart';
       import 'package:built_value/built_value.dart';
       import 'package:built_value/serializer.dart';
+      
+      ${_buildNestedImports(genClass.fields)}
       
       part '${new ReCase(genClass.name).snakeCase}.g.dart';
     
@@ -111,8 +112,19 @@ class Parser {
 
   String _getPascalCaseClassName(String name) => new ReCase(name).pascalCase;
 
-  ListBuilder<Method> _buildMethods(List<GenField> topLevel) {
-    return new ListBuilder(topLevel.map((GenField s) => new Method((b) => b
+  String _buildNestedImports(List<GenField> fields) {
+    List items = fields
+        .where((GenField field) =>
+            field.type.type == JsonType.MAP ||
+            field.type.listType == JsonType.MAP)
+        .map((GenField field) => ReCase(field.type.name).snakeCase)
+        .map((String name) => "import '$name.dart';")
+        .toList();
+    return items.isNotEmpty ? items.reduce((s1, s2) => "$s1\n$s2") : "";
+  }
+
+  ListBuilder<Method> _buildMethods(List<GenField> fields) {
+    return new ListBuilder(fields.map((GenField s) => new Method((b) => b
       ..name = new ReCase(s.fieldName).camelCase
       ..returns = _getDartType(s.type)
       ..annotations.add(new CodeExpression(

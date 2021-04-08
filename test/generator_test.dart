@@ -49,7 +49,9 @@ main() {
     Stream files = Stream.fromIterable(classFiles.entries).asyncMap((entry) {
       String filename = 'gen/${entry.key}.dart';
       print("Preparing file: $filename");
-      return File(filename).writeAsString(entry.value);
+      return File(filename)
+          .create(recursive: true)
+          .then((file) => file.writeAsString(entry.value));
     });
 
     await for (var file in files) {
