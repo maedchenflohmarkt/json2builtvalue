@@ -58,20 +58,6 @@ class Parser {
       ..name = _getPascalCaseClassName(genClass.name)
       ..methods = _buildMethods(genClass.fields)
       ..methods.add(new Method((b) => b
-        ..name = 'toJson'
-        ..returns = new Reference('String')
-        ..body = new Code(
-            'return json.encode(serializers.serializeWith(${_getPascalCaseClassName(genClass.name)}.serializer, this));')))
-      ..methods.add(new Method((b) => b
-        ..name = 'fromJson'
-        ..static = true
-        ..requiredParameters.add(new Parameter((b) => b
-          ..name = 'jsonString'
-          ..type = new Reference('String')))
-        ..returns = new Reference(_getPascalCaseClassName(genClass.name))
-        ..body = new Code(
-            'return serializers.deserializeWith(${_getPascalCaseClassName(genClass.name)}.serializer, json.decode(jsonString));')))
-      ..methods.add(new Method((b) => b
         ..type = MethodType.getter
         ..name = 'serializer'
         ..static = true
@@ -92,12 +78,6 @@ class Parser {
     String classString = topLevelClass.accept(new DartEmitter()).toString();
 
     String header = """
-      import 'dart:convert';
-      
-      import 'package:built_collection/built_collection.dart';
-      import 'package:built_value/built_value.dart';
-      import 'package:built_value/serializer.dart';
-      
       ${_buildNestedImports(genClass.fields)}
       
       part '${new ReCase(genClass.name).snakeCase}.g.dart';
@@ -113,6 +93,16 @@ class Parser {
   String _getPascalCaseClassName(String name) => new ReCase(name).pascalCase;
 
   String _buildNestedImports(List<GenField> fields) {
+    String baseImports = """
+      import 'package:built_value/built_value.dart';
+      import 'package:built_value/serializer.dart';
+    """;
+    baseImports +=
+        fields.any((GenField field) => field.type.type == JsonType.LIST)
+            ? """
+      import 'package:built_collection/built_collection.dart';
+    """
+            : "";
     List items = fields
         .where((GenField field) =>
             field.type.type == JsonType.MAP ||
@@ -120,7 +110,11 @@ class Parser {
         .map((GenField field) => ReCase(field.type.name).snakeCase)
         .map((String name) => "import '$name.dart';")
         .toList();
-    return items.isNotEmpty ? items.reduce((s1, s2) => "$s1\n$s2") : "";
+
+    String generatedClasses =
+        items.isNotEmpty ? items.reduce((s1, s2) => "$s1\n$s2") : "";
+
+    return baseImports + generatedClasses;
   }
 
   ListBuilder<Method> _buildMethods(List<GenField> fields) {
