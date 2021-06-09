@@ -27,27 +27,27 @@ const String startingJson = """
 void main() {
 //  querySelector('#output').text = 'Your Dart app is running.';
 
-  Element outputText = querySelector('#output_text');
-  TextAreaElement input = document.getElementById('input_text');
-  input.text = startingJson;
+  Element? outputText = querySelector('#output_text');
+  Element? input = document.getElementById('input_text');
+  input?.text = startingJson;
 
-  querySelector('#convert').onClick.forEach((MouseEvent event) async {
+  querySelector('#convert')?.onClick.forEach((MouseEvent event) async {
     try {
-      TextInputElement rootClassNameElement =
+      Element? rootClassNameElement =
           document.getElementById('root_class_name');
-      String rootClassName = rootClassNameElement.value;
+      String? rootClassName = (rootClassNameElement as TextInputElement).value;
 
-      TextAreaElement elementById = document.getElementById('input_text');
-      String json = elementById.value;
+      Element? elementById = document.getElementById('input_text');
+      String? json = (elementById as TextAreaElement).value;
       print('json is $json');
       Parser parser = new Parser();
       String outputClasses =
-          parser.parse(json, rootClassName.replaceAll(' ', ''), []);
+          parser.parse(json!, rootClassName!.replaceAll(' ', ''), []);
 
-      outputText.text = outputClasses;
+      outputText?.text = outputClasses;
       // outputText.text = json;
     } catch (e) {
-      outputText.text = 'Error: ${e.toString()}';
+      outputText?.text = 'Error: ${e.toString()}';
     }
   });
 }

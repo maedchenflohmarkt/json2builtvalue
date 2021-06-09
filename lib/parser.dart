@@ -11,22 +11,25 @@ class Parser {
   final Set<String> classNamesRepo = Set();
 
   String parse(
-      String jsonString, String topLevelName, List<String> reservedNames) {
-    return parseToMap(jsonString, topLevelName, reservedNames)
+      String jsonString, String topLevelName, List<String> reservedNames,
+      [SerializationOptions? options]) {
+    return parseToMap(jsonString, topLevelName, reservedNames, options)
         .values
         .reduce((s1, s2) => s1 + s2);
   }
 
   Map<String, String> parseToMap(
-      String jsonString, String topLevelName, List<String> reservedNames) {
+      String jsonString, String topLevelName, List<String> reservedNames,
+      [SerializationOptions? options]) {
     classNamesRepo.clear();
     classNamesRepo
         .addAll(reservedNames.map((className) => className.toLowerCase()));
     var decode = json.decode(jsonString);
-    return _recurseParsing(topLevelName, decode);
+    return _recurseParsing(topLevelName, decode, options);
   }
 
-  Map<String, String> _recurseParsing(className, decode) {
+  Map<String, String> _recurseParsing(
+      className, decode, SerializationOptions? options) {
     List<GenClass> allClasses = [];
     Map<String, String> result = {};
 
@@ -36,24 +39,25 @@ class Parser {
       while (!classNamesRepo.add(realClassName)) {
         realClassName += "Of${ReCase(className).pascalCase}";
       }
-      return GenField(f.type.copyWith(name: realClassName), f.fieldName);
+      return GenField(f.type.copyWith(realClassName), f.fieldName);
     }).toList();
 
     allClasses.add(new GenClass(className, fields));
     fields.map((field) => field.type).forEach((GenType s) {
       if ((s.type == JsonType.LIST && s.listType == JsonType.MAP) ||
           s.type == JsonType.MAP) {
-        result.addAll(_recurseParsing(s.name, s.value));
+        result.addAll(_recurseParsing(s.name, s.value, options));
       }
     });
 
-    result.addEntries(allClasses.map(
-        (cl) => MapEntry(ReCase(cl.name).snakeCase, _generateStringClass(cl))));
+    result.addEntries(allClasses.map((cl) => MapEntry(
+        ReCase(cl.name).snakeCase, _generateStringClass(cl, options))));
 
     return result;
   }
 
-  String _generateStringClass(GenClass genClass) {
+  String _generateStringClass(
+      GenClass genClass, SerializationOptions? options) {
     var topLevelClass = new Class((b) => b
       ..abstract = true
       ..constructors.add(new Constructor((b) => b..name = '_'))
@@ -79,10 +83,28 @@ class Parser {
                 '[updates(${_getPascalCaseClassName(genClass.name)}Builder b)]'))),
       ));
 
+    if (options != null) {
+      topLevelClass = topLevelClass.rebuild((b) => b
+        ..methods.add(new Method((b) => b
+          ..name = 'toJson'
+          ..returns = new Reference('String')
+          ..body = new Code(
+              'return json.encode(${options.serializersVariableName}.serializeWith(${_getPascalCaseClassName(genClass.name)}.serializer, this));')))
+        ..methods.add(new Method((b) => b
+          ..name = 'fromJson'
+          ..static = true
+          ..requiredParameters.add(new Parameter((b) => b
+            ..name = 'jsonString'
+            ..type = new Reference('String')))
+          ..returns =
+              new Reference("${_getPascalCaseClassName(genClass.name)}?")
+          ..body = new Code(
+              'return ${options.serializersVariableName}.deserializeWith(${_getPascalCaseClassName(genClass.name)}.serializer, json.decode(jsonString));'))));
+    }
     String classString = topLevelClass.accept(new DartEmitter()).toString();
 
     String header = """
-      ${_buildNestedImports(genClass.fields)}
+      ${_buildNestedImports(genClass.fields, options)}
       
       part '${new ReCase(genClass.name).snakeCase}.g.dart';
     
@@ -96,8 +118,10 @@ class Parser {
 
   String _getPascalCaseClassName(String name) => new ReCase(name).pascalCase;
 
-  String _buildNestedImports(List<GenField> fields) {
+  String _buildNestedImports(
+      List<GenField> fields, SerializationOptions? options) {
     String baseImports = """
+      import 'dart:convert';
       import 'package:built_value/built_value.dart';
       import 'package:built_value/serializer.dart';
     """;
@@ -107,6 +131,11 @@ class Parser {
       import 'package:built_collection/built_collection.dart';
     """
             : "";
+    if (options != null) {
+      baseImports += """ 
+      import 'package:${options.serializersImport}';
+    """;
+    }
     List items = fields
         .where((GenField field) =>
             field.type.type == JsonType.MAP ||

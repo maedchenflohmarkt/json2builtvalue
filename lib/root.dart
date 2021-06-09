@@ -1,13 +1,13 @@
 class GenType {
   final String name;
   final JsonType type;
-  final JsonType listType;
+  final JsonType? listType;
   final dynamic value;
 
   GenType(this.name, this.type, this.value, {this.listType});
 
-  GenType copyWith({String name, JsonType type, value, JsonType listType}) {
-    return GenType(name ?? this.name, type ?? this.type, value ?? this.value,
+  GenType copyWith(String name, {JsonType? type, value, JsonType? listType}) {
+    return GenType(name, type ?? this.type, value ?? this.value,
         listType: listType ?? this.listType);
   }
 
@@ -42,3 +42,11 @@ class GenClass {
 }
 
 enum JsonType { INT, DOUBLE, BOOL, STRING, MAP, LIST }
+
+class SerializationOptions {
+  final String serializersImport;
+  final String serializersVariableName;
+
+  SerializationOptions(
+      {required this.serializersImport, required this.serializersVariableName});
+}

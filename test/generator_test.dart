@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_style/dart_style.dart';
 import 'package:json2builtvalue/parser.dart';
+import 'package:json2builtvalue/root.dart';
 import 'package:test/test.dart';
 
 main() {
@@ -52,8 +53,13 @@ main() {
   test('should parse json', () async {
     final parser = new Parser();
 
-    Map<String, String> classFiles =
-        parser.parseToMap(jsonString, 'RootModel', ["Value"]);
+    Map<String, String> classFiles = parser.parseToMap(
+        jsonString,
+        'RootModel',
+        ["Value"],
+        SerializationOptions(
+            serializersImport: "core/model/serializers.dart",
+            serializersVariableName: "serializers"));
 
     Stream files = Stream.fromIterable(classFiles.entries).asyncMap((entry) {
       String filename = 'gen/${entry.key}.dart';
