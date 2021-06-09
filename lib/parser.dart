@@ -10,14 +10,18 @@ class Parser {
   final _dartfmt = new DartFormatter();
   final Set<String> classNamesRepo = Set();
 
-  String parse(String jsonString, String topLevelName) {
-    return parseToMap(jsonString, topLevelName)
+  String parse(
+      String jsonString, String topLevelName, List<String> reservedNames) {
+    return parseToMap(jsonString, topLevelName, reservedNames)
         .values
         .reduce((s1, s2) => s1 + s2);
   }
 
-  Map<String, String> parseToMap(String jsonString, String topLevelName) {
+  Map<String, String> parseToMap(
+      String jsonString, String topLevelName, List<String> reservedNames) {
     classNamesRepo.clear();
+    classNamesRepo
+        .addAll(reservedNames.map((className) => className.toLowerCase()));
     var decode = json.decode(jsonString);
     return _recurseParsing(topLevelName, decode);
   }

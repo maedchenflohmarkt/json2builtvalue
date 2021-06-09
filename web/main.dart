@@ -42,7 +42,7 @@ void main() {
       print('json is $json');
       Parser parser = new Parser();
       String outputClasses =
-          parser.parse(json, rootClassName.replaceAll(' ', ''));
+          parser.parse(json, rootClassName.replaceAll(' ', ''), []);
 
       outputText.text = outputClasses;
       // outputText.text = json;
