@@ -24,7 +24,7 @@ const String startingJson = """
 }
 """;
 
-void main() {
+void mainweb() {
 //  querySelector('#output').text = 'Your Dart app is running.';
 
   Element? outputText = querySelector('#output_text');
@@ -40,7 +40,7 @@ void main() {
       Element? elementById = document.getElementById('input_text');
       String? json = (elementById as TextAreaElement).value;
       print('json is $json');
-      Parser parser = new Parser();
+      JsonParser parser = new JsonParser();
       String outputClasses =
           parser.parse(json!, rootClassName!.replaceAll(' ', ''), []);
 
