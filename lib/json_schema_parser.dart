@@ -49,16 +49,22 @@ class JsonSchemaParser {
     schema.properties.forEach((key, val) {
       parentFieldsList.add(_returnField(key, val));
     });
+    if (schema.anyOf.isNotEmpty) {
+      schema.anyOf
+          .firstWhere((element) => element.type != SchemaType.nullValue)
+          .properties
+          .forEach((key, value) {
+        parentFieldsList.add(_returnField(key, value));
+      });
+    }
 
     return parentFieldsList;
   }
 
   GenField _returnField(String key, JsonSchema val) {
     print("_returnType for $key == ${val.typeList}");
-    SchemaType type = val.type ??
-        val.typeList!.firstWhere((element) => element != SchemaType.nullValue);
-    bool isNullable =
-        val.typeList!.any((element) => element == SchemaType.nullValue);
+    SchemaType type = calculateType(val);
+    bool isNullable = isTypeNullable(val);
     if (type == SchemaType.string)
       return GenField(
           GenType(key, isNullable ? JsonType.STRING_N : JsonType.STRING, val),
@@ -75,25 +81,27 @@ class JsonSchemaParser {
           GenType(key, isNullable ? JsonType.BOOL_N : JsonType.BOOL, val), key);
     else if (type == SchemaType.array) {
       return GenField(
-          GenType("${val.items?.propertyName ?? key}Model",
+          GenType(calculateClassName(val.items?.propertyName ?? key),
               isNullable ? JsonType.LIST_N : JsonType.LIST, val.items,
               listType: _returnListType(val.items!)),
           key);
     } else if (type == SchemaType.object) {
       return GenField(
-          GenType("${val.propertyName ?? key}Model",
+          GenType(calculateClassName(val.propertyName ?? key),
               isNullable ? JsonType.MAP_N : JsonType.MAP, val),
           key);
     } else
       throw new ArgumentError('Cannot resolve JSON-encodable type for $val.');
   }
 
+  String calculateClassName(String typeName) {
+    return "${typeName.replaceAll("-nullable", "")}Model";
+  }
+
   JsonType _returnListType(JsonSchema val) {
     print("_returnJsonType for ${val.propertyName} == ${val.type}");
-    SchemaType type = val.type ??
-        val.typeList!.firstWhere((element) => element != SchemaType.nullValue);
-    bool isNullable =
-        val.typeList!.any((element) => element == SchemaType.nullValue);
+    SchemaType type = calculateType(val);
+    bool isNullable = isTypeNullable(val);
     if (type == SchemaType.string)
       return isNullable ? JsonType.STRING_N : JsonType.STRING;
     else if (type == SchemaType.integer)
@@ -106,5 +114,31 @@ class JsonSchemaParser {
       return isNullable ? JsonType.MAP_N : JsonType.MAP;
     else
       throw new ArgumentError('Cannot resolve JSON-encodable type for $val.');
+  }
+
+  SchemaType calculateType(JsonSchema val) {
+    if (val.typeList != null) {
+      return val.type ??
+          val.typeList!
+              .firstWhere((element) => element != SchemaType.nullValue);
+    } else {
+      if (val.anyOf.isNotEmpty) {
+        return val.anyOf
+            .firstWhere((element) => element.type != SchemaType.nullValue)
+            .type!;
+      }
+      throw new ArgumentError('Cannot calculateType $val.');
+    }
+  }
+
+  bool isTypeNullable(JsonSchema val) {
+    if (val.typeList != null) {
+      return val.typeList!.any((element) => element == SchemaType.nullValue);
+    } else {
+      if (val.anyOf.isNotEmpty) {
+        return val.anyOf.any((element) => element.type == SchemaType.nullValue);
+      }
+      throw new ArgumentError('Cannot calculate isTypeNullable $val.');
+    }
   }
 }

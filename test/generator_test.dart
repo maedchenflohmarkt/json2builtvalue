@@ -51,7 +51,7 @@ main() {
 //  """;
 
   test('should parse json', () async {
-    final parser = new Parser();
+    final parser = new JsonParser();
 
     Map<String, String> classFiles = parser.parseToMap(
         jsonString,

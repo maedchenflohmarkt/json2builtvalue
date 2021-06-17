@@ -90,12 +90,13 @@ class Generator {
       import 'package:built_value/built_value.dart';
       import 'package:built_value/serializer.dart';
     """;
-    baseImports +=
-        fields.any((GenField field) => field.type.type == JsonType.LIST)
-            ? """
+    baseImports += fields.any((GenField field) =>
+            field.type.type == JsonType.LIST ||
+            field.type.type == JsonType.LIST_N)
+        ? """
       import 'package:built_collection/built_collection.dart';
     """
-            : "";
+        : "";
     if (options != null) {
       baseImports += """ 
       import 'package:${options.serializersImport}';
