@@ -87,6 +87,7 @@ class Generator {
       GenClass genClass, SerializationOptions? options) {
     String baseImports = """
       // DO NOT EDIT. This is code generated via package:json2builtvalue
+      // coverage:ignore-file
       import 'dart:convert';
       import 'package:built_value/built_value.dart';
       import 'package:built_value/serializer.dart';
@@ -116,8 +117,8 @@ class Generator {
         //avoid duplicate imports
         .toSet()
         .toList()
-          //sort alphabetically
-          ..sort();
+      //sort alphabetically
+      ..sort();
     items = items.map((String name) => "import '$name.dart';").toList();
 
     String generatedClasses =

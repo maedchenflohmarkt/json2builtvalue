@@ -2,6 +2,7 @@
 // Created by S. Alikhver on 10.06.21.
 //
 
+import 'package:collection/collection.dart';
 import 'package:json2builtvalue/generator.dart';
 import 'package:json2builtvalue/root.dart';
 import 'package:json_schema/json_schema.dart';
@@ -123,11 +124,13 @@ class JsonSchemaParser {
               .firstWhere((element) => element != SchemaType.nullValue);
     } else {
       if (val.anyOf.isNotEmpty) {
-        return val.anyOf
-            .firstWhere((element) => element.type != SchemaType.nullValue)
-            .type!;
+        var type = val.anyOf
+            .firstWhereOrNull((element) => element.type != SchemaType.nullValue)
+            ?.type;
+        if (type != null) return type;
       }
-      throw new ArgumentError('Cannot calculateType $val.');
+      throw new ArgumentError(
+          'Cannot calculateType fields type and anyOf are empty: $val.');
     }
   }
 
